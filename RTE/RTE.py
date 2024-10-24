@@ -9,7 +9,9 @@ class RTE(QMainWindow):
     def __init__(self):
         super(RTE, self).__init__()
         self.editor = QTextEdit()
+        self.font_ = QFont()
         self.fontSizeBox = QSpinBox()
+        self.fontBox = QComboBox(self)
         
         font = QFont('Times', 24)
         self.editor.setFont(font)
@@ -48,9 +50,12 @@ class RTE(QMainWindow):
         pasteBtn.triggered.connect(self.editor.paste)
         toolbar.addAction(pasteBtn)
         
-        
+        self.fontSizeBox.setValue(24)
+        self.fontSizeBox.valueChanged.connect(self.setFontSize)
+        toolbar.addWidget(self.fontSizeBox)
+
         self.fontBox = QComboBox(self)
-        self.fontBox.addItems(["Courier Std", "Hellentic Typewriter Regular", "Helvetica", "Arial", "SansSerif", "Helvetica", "Times", "Monospace"])
+        self.fontBox.addItems(["Arial", "Bahnschrift", "Calibri", "Cambria", "Candara", "Comic Sans MS", "Consolas", "Courier", "Fixedsys", "Gadugi", "Georgia", "HoloLens MDL2 Assets", "Impact", "Ink Free", "Javanese Text", "MS Serif", "Times New Roman"])
         self.fontBox.activated.connect(self.setFont)
         toolbar.addWidget(self.fontBox)
         
@@ -58,35 +63,58 @@ class RTE(QMainWindow):
         self.fontSizeBox.valueChanged.connect(self.setFontSize)
         toolbar.addWidget(self.fontSizeBox)
         
-        rightAllign = QAction(QIcon('right-align.png'), 'Right Allign', self)
-        rightAllign.triggered.connect(lambda : self.editor.setAlignment(Qt.AlignRight))
-        toolbar.addAction(rightAllign)
+        self.rightAllign = QAction(QIcon('right-align.png'), 'Right Allign', self)
+        self.rightAllign.triggered.connect(lambda : self.setAlignment(Qt.AlignRight))
+        toolbar.addAction(self.rightAllign)
         
-        leftAllign = QAction(QIcon('left-align.png'), 'left Allign', self)
-        leftAllign.triggered.connect(lambda : self.editor.setAlignment(Qt.AlignLeft))
-        toolbar.addAction(leftAllign)
+        self.leftAllign = QAction(QIcon('left-align.png'), 'Left Allign', self)
+        self.leftAllign.triggered.connect(lambda : self.setAlignment(Qt.AlignLeft))
+        toolbar.addAction(self.leftAllign)
         
-        centerAllign = QAction(QIcon('center-align.png'), 'Center Allign', self)
-        centerAllign.triggered.connect(lambda : self.editor.setAlignment(Qt.AlignCenter))
-        toolbar.addAction(centerAllign)
+        self.centerAllign = QAction(QIcon('center-align.png'), 'Center Allign', self)
+        self.centerAllign.triggered.connect(lambda : self.setAlignment(Qt.AlignCenter))
+        toolbar.addAction(self.centerAllign)
         
+        self.color_btn = QAction(QIcon('app_images/color.png'), 'Color', self)
+        self.color_btn.triggered.connect(self.setFontColor)
+        toolbar.addAction(self.color_btn)
+
         toolbar.addSeparator()
         
-        boldBtn = QAction(QIcon('bold.png'), 'Bold', self)
-        boldBtn.triggered.connect(self.boldText)
-        toolbar.addAction(boldBtn)
+        self.boldBtn = QAction(QIcon('bold.png'), 'Bold', self)
+        self.boldBtn.triggered.connect(self.boldText)
+        toolbar.addAction(self.boldBtn)
         
-        underlineBtn = QAction(QIcon('underline.png'), 'underline', self)
-        underlineBtn.triggered.connect(self.underlineText)
-        toolbar.addAction(underlineBtn)
+        self.underlineBtn = QAction(QIcon('underline.png'), 'underline', self)
+        self.underlineBtn.triggered.connect(self.underlineText)
+        toolbar.addAction(self.underlineBtn)
         
-        italicBtn = QAction(QIcon('italic.png'), 'italic', self)
-        italicBtn.triggered.connect(self.italicText)
-        toolbar.addAction(italicBtn)
+        self.italicBtn = QAction(QIcon('italic.png'), 'italic', self)
+        self.italicBtn.triggered.connect(self.italicText)
+        toolbar.addAction(self.italicBtn)
         
         
-        self.addToolBar(toolbar)    
-        
+        self.addToolBar(toolbar)
+
+    def setAlignment(self, pos):
+        if pos == Qt.AlignCenter:
+            if self.centerAllign.isChecked():
+                self.centerAllign.setChecked(True)
+        elif pos == Qt.AlignLeft:
+            if self.leftAllign.isChecked():
+                self.leftAllign.setChecked(True)
+        else:
+            if self.rightAllign.isChecked():
+                self.rightAllign.setChecked(True)
+
+        self.editor.setAlignment(pos)
+    
+    def setFontColor(self):
+        picked_color = QColorDialog.getColor()
+        R, G, B, A = picked_color.getRgb()
+
+        self.editor.setTextColor(QColor(R, G, B, A))
+
     def setFontSize(self):
         value = self.fontSizeBox.value()
         self.editor.setFontPointSize(value)
@@ -96,18 +124,26 @@ class RTE(QMainWindow):
         self.editor.setCurrentFont(QFont(font))    
         
     def italicText(self):
+        if self.italicBtn.isChecked():
+            self.italicBtn.setChecked(True)
         state = self.editor.fontItalic()
         self.editor.setFontItalic(not(state)) 
     
     def underlineText(self):
+        if self.underlineBtn.isChecked():
+            self.underlineBtn.setChecked(True)
         state = self.editor.fontUnderline()
         self.editor.setFontUnderline(not(state))   
         
     def boldText(self):
-        if self.editor.fontWeight != QFont.Bold:
-            self.editor.setFontWeight(QFont.Bold)
-            return
-        self.editor.setFontWeight(QFont.Normal)         
+        if self.boldBtn.isChecked():
+            self.boldBtn.setChecked(True)
+        
+        cursor = self.editor.textCursor()
+        if cursor.charFormat().font().bold():
+            self.editor.setFontWeight(QFont.Normal)
+        else:
+            self.editor.setFontWeight(QFont.Bold)       
     
     def saveFile(self):
         print(self.path)
@@ -127,7 +163,7 @@ class RTE(QMainWindow):
             return   
         text = self.editor.toPlainText()
         try:
-            with open(path, 'w') as f:
+            with open(self.path, 'w') as f:
                 f.write(text)
                 self.update_title()
         except Exception as e:
